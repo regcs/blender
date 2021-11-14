@@ -1025,6 +1025,22 @@ void DRW_cache_free_old_batches(Main *bmain)
 /** \name Rendering (DRW_engines)
  * \{ */
 
+/* Make sure views for the offscreen rendering are up-to-date.
+ * This is necessary for the introduction of a cached offscreen rendering
+ * which speeds up repeated offscreen renders (see T89204).
+ */
+static void drw_engines_offscreen_ensure(void)
+{
+  if (DST.options.is_image_render) {
+    DRW_ENABLED_ENGINE_ITER (DST.view_data_active, engine, data) {
+      if (engine->view_update) {
+        engine->view_update(data);
+      }
+
+   }
+  }
+}
+
 static void drw_engines_init(void)
 {
   DRW_ENABLED_ENGINE_ITER (DST.view_data_active, engine, data) {
@@ -1627,6 +1643,9 @@ void DRW_draw_render_loop_ex(struct Depsgraph *depsgraph,
   /* Get list of enabled engines */
   drw_engines_enable(view_layer, engine_type, gpencil_engine_needed);
   drw_engines_data_validate();
+
+  /* Ensure the view for offscreen renders is updated (fixes T89204) */
+  drw_engines_offscreen_ensure();
 
   /* Update UBO's */
   DRW_globals_update();

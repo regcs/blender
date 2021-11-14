@@ -44,6 +44,7 @@
 #include "GPU_context.h"
 #include "GPU_framebuffer.h"
 #include "GPU_texture.h"
+#include "GPU_viewport.h"
 
 #include "ED_view3d.h"
 #include "ED_view3d_offscreen.h"
@@ -355,6 +356,9 @@ static PyObject *pygpu_offscreen_draw_view3d(BPyGPUOffScreen *self, PyObject *ar
 
   GPU_offscreen_bind(self->ofs, true);
 
+  if (!self->viewport) {
+    self->viewport = GPU_viewport_create();
+  }
   ED_view3d_draw_offscreen(depsgraph,
                            scene,
                            v3d->shading.type,
@@ -370,7 +374,7 @@ static PyObject *pygpu_offscreen_draw_view3d(BPyGPUOffScreen *self, PyObject *ar
                            do_color_management,
                            true,
                            self->ofs,
-                           NULL);
+                           self->viewport);
 
   GPU_offscreen_unbind(self->ofs, true);
 
@@ -391,6 +395,10 @@ static PyObject *pygpu_offscreen_free(BPyGPUOffScreen *self)
 {
   BPY_GPU_OFFSCREEN_CHECK_OBJ(self);
 
+  if (self->viewport) {
+    GPU_viewport_free(self->viewport);
+    self->viewport = NULL;
+  }
   GPU_offscreen_free(self->ofs);
   self->ofs = NULL;
   Py_RETURN_NONE;
@@ -399,6 +407,9 @@ static PyObject *pygpu_offscreen_free(BPyGPUOffScreen *self)
 
 static void BPyGPUOffScreen__tp_dealloc(BPyGPUOffScreen *self)
 {
+  if (self->viewport) {
+    GPU_viewport_free(self->viewport);
+  }
   if (self->ofs) {
     GPU_offscreen_free(self->ofs);
   }
@@ -469,6 +480,7 @@ PyObject *BPyGPUOffScreen_CreatePyObject(GPUOffScreen *ofs)
 
   self = PyObject_New(BPyGPUOffScreen, &BPyGPUOffScreen_Type);
   self->ofs = ofs;
+  self->viewport = NULL;
 
   return (PyObject *)self;
 }
