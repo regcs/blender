@@ -765,6 +765,19 @@ class PREFERENCES_OT_addon_remove(Operator):
                         return filepath, False
         return None, False
 
+    @staticmethod
+    def move_to_trash(func, path, err):
+        import os, stat
+
+        # file can not be deleted, so we move it to a separate trash folder
+        addon_trash_path = bpy.utils.user_resource(
+            'SCRIPTS',
+            path="addons_trash",
+            create=True,
+        )
+
+        os.rename(path, os.path.join(addon_trash_path, os.path.basename(path)))
+
     def execute(self, context):
         import addon_utils
         import os
@@ -779,7 +792,7 @@ class PREFERENCES_OT_addon_remove(Operator):
 
         import shutil
         if isdir and (not os.path.islink(path)):
-            shutil.rmtree(path)
+            shutil.rmtree(path, onerror=self.move_to_trash)
         else:
             os.remove(path)
 

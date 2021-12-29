@@ -23,12 +23,15 @@
 
 #include "RNA_types.h"
 
+#include "BLI_fileops.h"
+#include "BLI_fileops_types.h"
 #include "BLI_ghash.h"
 #include "BLI_listbase.h"
 #include "BLI_string.h"
 #include "BLI_utildefines.h"
 
 #include "BKE_addon.h" /* own include */
+#include "BKE_appdir.h"
 #include "BKE_idprop.h"
 
 #include "DNA_listBase.h"
@@ -83,6 +86,15 @@ void BKE_addon_free(bAddon *addon)
     IDP_FreeProperty(addon->prop);
   }
   MEM_freeN(addon);
+}
+
+/* Fix T77837: Delete addon trash needed when not all addon files could be removed*/
+void BKE_addon_trash_clear(void)
+{
+  const char *addons_trash_dir = BKE_appdir_folder_id(BLENDER_USER_SCRIPTS, "addons_trash");
+  if (addons_trash_dir && BLI_is_dir(addons_trash_dir)) {
+    BLI_delete(addons_trash_dir, true, true);
+  }
 }
 
 /** \} */
